@@ -78,18 +78,18 @@ impl Lexxer {
         let mut result: Vec<Token<'a>> = vec![];
 
         while let Some(char) = data.as_bytes().get(self.scan_position) {
-            if (*char == ">".as_bytes()[0]) {
+            if *char == ">".as_bytes()[0] {
                 result.push(Token::RightAngular);
-            } else if (*char == "<".as_bytes()[0]) {
+            } else if *char == "<".as_bytes()[0] {
                 result.push(Token::LeftAngular);
-            } else if (*char == "\"".as_bytes()[0]) {
+            } else if *char == "\"".as_bytes()[0] {
                 let StringyParseResult {
                     relative_end_index,
                     data,
                 } = parse_string_literal_greedily(&data[self.scan_position..])?;
                 self.scan_position = self.scan_position + relative_end_index;
                 result.push(Token::StringLiteral(data))
-            } else if (*char == "(".as_bytes()[0]) {
+            } else if *char == "(".as_bytes()[0] {
                 let StringyParseResult {
                     relative_end_index,
                     data,
