@@ -127,7 +127,7 @@ mod test {
     // < (SYMBOL) \"Hello World\"
     #[test]
     fn lex_a_answer_line() {
-        let input = "> (SYMBOL) \"Hello World\"";
+        let input = "< (SYMBOL) \"Hello World\"";
 
         let expected_tokens = vec![
             Token::LeftAngular,
