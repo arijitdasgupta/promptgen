@@ -24,12 +24,24 @@ A low dependency parser for a simple promptgen DSL that allows questions answer 
     - If the label doesn't exist as a question symbol, the system will go to the next available question.
  - If a question doesn't have an answer associated with it, the system won't go any further.
 
-# Components
-### Prompter
+# Components & todos
+## The language
+### Ideas
+ - [ ] Consider implementing `!` type, as a prompt with no answer. Can be labelled and can have a follow up labels.
+  - _Idea_: `! (LABEL_1) "Something Something" (LABEL_2)`.
+ - [ ] Consider symbol only questions and answers, with specifiable starting symbol for prompter?
+ - [ ] Consider supporting proper multiline string suppoert for formatted texts, such as Markdown.
+## Prompter
+### Ideas
+ - [ ] Consider implementing pre-rendering all possible answer tree.
+### Tasks
  - [ ] IMPLEMENT!
-### Parser
+# #Parser
+### Ideas
+ - Consider multifile support.
+### Tasks
  - [ ] IMPLEMENT!
-### Lexer
-#### Tasks
+## Lexer
+### Tasks
  - [ ] Better reporting on where the error happened by reporting faulty position in the string.
   - Can be done by wrapping convert one error style into another, and having a global error enum to represent global failure indices.
