@@ -1,6 +1,6 @@
 # promptgen
 
-A parser for a simple promptgen DSL that allows questions answer style interactions.
+A low dependency parser for a simple promptgen DSL that allows questions answer style interactions. Useful for interactive birthday cards and such.
 
 ## promtgen lang
 ```
