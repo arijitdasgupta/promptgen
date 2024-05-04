@@ -1,15 +1,15 @@
 #[derive(Debug, PartialEq, Eq)]
 struct StringyParseResult<'a> {
     relative_end_index: usize,
-    data: &'a str
+    data: &'a str,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum LexxerError {
     InvalidSyntax,
-    UnterminatedSymbolLiteral,
+    UnterminatedLabelLiteral,
     UnterminatedStringLiteral,
-    InvalidSymbolCharacter
+    InvalidLabelCharacter,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -17,18 +17,18 @@ pub(crate) enum Token<'a> {
     RightAngular,
     LeftAngular,
     StringLiteral(&'a str),
-    Symbol(&'a str)
+    LabelLiteral(&'a str),
 }
 
-fn parse_symbol_block_greedily<'a>(data: &'a str) -> Result<StringyParseResult, LexxerError> {
+fn parse_label_block_greedily<'a>(data: &'a str) -> Result<StringyParseResult, LexxerError> {
     let mut idx: usize = 1;
 
     while true {
         let d = data.as_bytes().get(idx);
         match d {
-            None => return Err(LexxerError::UnterminatedSymbolLiteral),
-            Some(x) if x.is_ascii_whitespace() => return Err(LexxerError::InvalidSymbolCharacter),
-            Some(x) if *x == "\n".as_bytes()[0] => return Err(LexxerError::InvalidSymbolCharacter),
+            None => return Err(LexxerError::UnterminatedLabelLiteral),
+            Some(x) if x.is_ascii_whitespace() => return Err(LexxerError::InvalidLabelCharacter),
+            Some(x) if *x == "\n".as_bytes()[0] => return Err(LexxerError::InvalidLabelCharacter),
             Some(x) if *x == ")".as_bytes()[0] => break,
             _ => (),
         }
@@ -37,7 +37,7 @@ fn parse_symbol_block_greedily<'a>(data: &'a str) -> Result<StringyParseResult, 
 
     Ok(StringyParseResult {
         relative_end_index: idx,
-        data: &data[1..idx]
+        data: &data[1..idx],
     })
 }
 
@@ -62,7 +62,7 @@ fn parse_string_literal_greedily<'a>(data: &'a str) -> Result<StringyParseResult
 }
 
 struct Lexer {
-    cursor_position: usize
+    cursor_position: usize,
 }
 
 struct Lexxer {
@@ -83,13 +83,19 @@ impl Lexxer {
             } else if (*char == "<".as_bytes()[0]) {
                 result.push(Token::LeftAngular);
             } else if (*char == "\"".as_bytes()[0]) {
-                let StringyParseResult { relative_end_index, data } = parse_string_literal_greedily(&data[self.scan_position..])?;
+                let StringyParseResult {
+                    relative_end_index,
+                    data,
+                } = parse_string_literal_greedily(&data[self.scan_position..])?;
                 self.scan_position = self.scan_position + relative_end_index;
                 result.push(Token::StringLiteral(data))
             } else if (*char == "(".as_bytes()[0]) {
-                let StringyParseResult { relative_end_index, data } = parse_symbol_block_greedily(&data[self.scan_position..])?;
+                let StringyParseResult {
+                    relative_end_index,
+                    data,
+                } = parse_label_block_greedily(&data[self.scan_position..])?;
                 self.scan_position = self.scan_position + relative_end_index;
-                result.push(Token::Symbol(data))
+                result.push(Token::LabelLiteral(data))
             }
 
             self.scan_position += 1;
@@ -103,39 +109,39 @@ impl Lexxer {
 mod test {
     use crate::lexer::{Lexxer, LexxerError, StringyParseResult};
 
-    use super::{parse_string_literal_greedily, parse_symbol_block_greedily, Token};
+    use super::{parse_string_literal_greedily, parse_label_block_greedily, Token};
 
     // A whole prompt chunk, e.g.
-    // > (SYMBOL) \"Hello World\"
+    // > (LABEL) \"Hello World\"
     #[test]
     fn lex_a_line() {
-        let input = "> (SYMBOL) \"Hello World\"";
+        let input = "> (LABEL) \"Hello World\"";
 
         let expected_tokens = vec![
             Token::RightAngular,
-            Token::Symbol("SYMBOL"),
+            Token::LabelLiteral("LABEL"),
             Token::StringLiteral("Hello World"),
         ];
         let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
-        
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
     }
 
-     // A whole answer chunk, e.g.
-    // < (SYMBOL) \"Hello World\"
+    // A whole answer chunk, e.g.
+    // < (LABEL) \"Hello World\"
     #[test]
     fn lex_a_answer_line() {
-        let input = "< (SYMBOL) \"Hello World\"";
+        let input = "< (LABEL) \"Hello World\"";
 
         let expected_tokens = vec![
             Token::LeftAngular,
-            Token::Symbol("SYMBOL"),
+            Token::LabelLiteral("LABEL"),
             Token::StringLiteral("Hello World"),
         ];
         let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
-        
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
@@ -144,15 +150,15 @@ mod test {
     // A whole multiline prompt chunk
     #[test]
     fn lex_multi_line_string() {
-        let input = "> (SYMBOL) \"Hello\nWorld\"";
+        let input = "> (LABEL) \"Hello\nWorld\"";
 
         let expected_tokens = vec![
             Token::RightAngular,
-            Token::Symbol("SYMBOL"),
+            Token::LabelLiteral("LABEL"),
             Token::StringLiteral("Hello\nWorld"),
         ];
         let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
-        
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
@@ -160,33 +166,36 @@ mod test {
 
     // Bad syntaxes
     #[test]
-    fn fail_to_lex_bad_symbols_1() {
-        let input = "> (SYMBOL \"Hello\nWorld\"";
+    fn fail_to_lex_bad_labels_1() {
+        let input = "> (LABEL \"Hello\nWorld\"";
 
-        let expected_result: Result<Vec<Token>, LexxerError> = Err(LexxerError::InvalidSymbolCharacter);
-        
+        let expected_result: Result<Vec<Token>, LexxerError> =
+            Err(LexxerError::InvalidLabelCharacter);
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
     }
 
     #[test]
-    fn fail_to_lex_bad_symbols_2() {
-        let input = "> (SYMBOL_BOO_BOO";
+    fn fail_to_lex_bad_labels_2() {
+        let input = "> (LABEL_BOO_BOO";
 
-        let expected_result: Result<Vec<Token>, LexxerError> = Err(LexxerError::UnterminatedSymbolLiteral);
-        
+        let expected_result: Result<Vec<Token>, LexxerError> =
+            Err(LexxerError::UnterminatedLabelLiteral);
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
     }
 
     #[test]
-    fn fail_to_lex_bad_symbols_3() {
-        let input = "> (SYMBOL\nBOO_BOO";
+    fn fail_to_lex_bad_labels_3() {
+        let input = "> (LABEL\nBOO_BOO";
 
-        let expected_result: Result<Vec<Token>, LexxerError> = Err(LexxerError::InvalidSymbolCharacter);
-        
+        let expected_result: Result<Vec<Token>, LexxerError> =
+            Err(LexxerError::InvalidLabelCharacter);
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
@@ -195,14 +204,12 @@ mod test {
     // Bad syntaxes being ignored
     #[test]
     fn ignores_weird_stuff_1() {
-        let input = "> SYMBOL)";
+        let input = "> LABEL)";
 
-        let expected_tokens = vec![
-            Token::RightAngular
-        ];
+        let expected_tokens = vec![Token::RightAngular];
 
         let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
-        
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
@@ -210,30 +217,57 @@ mod test {
 
     #[test]
     fn ignores_weird_stuff_2() {
-        let input = "> (SYMBOL) Hello World";
+        let input = "> (LABEL) Hello World";
 
-        let expected_tokens = vec![
-            Token::RightAngular,
-            Token::Symbol("SYMBOL")
-        ];
+        let expected_tokens = vec![Token::RightAngular, Token::LabelLiteral("LABEL")];
 
         let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
-        
+
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
         assert_eq!(result, expected_result);
     }
 
-    // Symbol literals
-    // e.g. (SYMBOL)
+    // label literals
+    // e.g. (LABEL)
     #[test]
-    fn lex_a_symbol() {
-        let input = "(SYMBOL)";
+    fn lex_a_label() {
+        let input = "(LABEL)";
 
-        let result = parse_symbol_block_greedily(input);
+        let result = parse_label_block_greedily(input);
         let expected_result: Result<StringyParseResult, LexxerError> = Ok(StringyParseResult {
-            relative_end_index: 7,
-            data: "SYMBOL"
+            relative_end_index: 6,
+            data: "LABEL",
+        });
+
+        assert_eq!(result, expected_result);
+    }
+
+    // label literals with LABELs
+    // e.g. (LABEL_1)
+    #[test]
+    fn lex_a_label_with_symbols() {
+        let input = "(LABEL_1)";
+
+        let result = parse_label_block_greedily(input);
+        let expected_result: Result<StringyParseResult, LexxerError> = Ok(StringyParseResult {
+            relative_end_index: 8,
+            data: "LABEL_1",
+        });
+
+        assert_eq!(result, expected_result);
+    }
+
+    // Lex a blank LABEL
+    // e.g. (LABEL_1)
+    #[test]
+    fn lex_a_blank_label() {
+        let input = "()";
+
+        let result = parse_label_block_greedily(input);
+        let expected_result: Result<StringyParseResult, LexxerError> = Ok(StringyParseResult {
+            relative_end_index: 1,
+            data: "",
         });
 
         assert_eq!(result, expected_result);
@@ -247,7 +281,21 @@ mod test {
         let result = parse_string_literal_greedily(input);
         let expected_result: Result<StringyParseResult, LexxerError> = Ok(StringyParseResult {
             relative_end_index: 6,
-            data: "Hello"
+            data: "Hello",
+        });
+
+        assert_eq!(result, expected_result);
+    }
+
+    // String literals
+    #[test]
+    fn lex_a_blank_string_literal() {
+        let input = "\"\"";
+
+        let result = parse_string_literal_greedily(input);
+        let expected_result: Result<StringyParseResult, LexxerError> = Ok(StringyParseResult {
+            relative_end_index: 1,
+            data: "",
         });
 
         assert_eq!(result, expected_result);
@@ -258,7 +306,8 @@ mod test {
         let input = "\"Hello";
 
         let result = parse_string_literal_greedily(input);
-        let expected_result: Result<StringyParseResult, LexxerError> = Err(LexxerError::UnterminatedStringLiteral);
+        let expected_result: Result<StringyParseResult, LexxerError> =
+            Err(LexxerError::UnterminatedStringLiteral);
 
         assert_eq!(result, expected_result);
     }
@@ -268,7 +317,8 @@ mod test {
         let input = "Hello World!";
 
         let result = parse_string_literal_greedily(input);
-        let expected_result: Result<StringyParseResult, LexxerError> = Err(LexxerError::UnterminatedStringLiteral);
+        let expected_result: Result<StringyParseResult, LexxerError> =
+            Err(LexxerError::UnterminatedStringLiteral);
 
         assert_eq!(result, expected_result);
     }
