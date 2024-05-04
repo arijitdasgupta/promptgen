@@ -123,6 +123,24 @@ mod test {
         assert_eq!(result, expected_result);
     }
 
+     // A whole answer chunk, e.g.
+    // < (SYMBOL) \"Hello World\"
+    #[test]
+    fn lex_a_answer_line() {
+        let input = "> (SYMBOL) \"Hello World\"";
+
+        let expected_tokens = vec![
+            Token::LeftAngular,
+            Token::Symbol("SYMBOL"),
+            Token::StringLiteral("Hello World"),
+        ];
+        let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
+        
+        let mut lexxer = Lexxer::new();
+        let result = lexxer.parse(input);
+        assert_eq!(result, expected_result);
+    }
+
     // A whole multiline prompt chunk
     #[test]
     fn lex_multi_line_string() {
@@ -168,6 +186,38 @@ mod test {
         let input = "> (SYMBOL\nBOO_BOO";
 
         let expected_result: Result<Vec<Token>, LexxerError> = Err(LexxerError::InvalidSymbolCharacter);
+        
+        let mut lexxer = Lexxer::new();
+        let result = lexxer.parse(input);
+        assert_eq!(result, expected_result);
+    }
+
+    // Bad syntaxes being ignored
+    #[test]
+    fn ignores_weird_stuff_1() {
+        let input = "> SYMBOL)";
+
+        let expected_tokens = vec![
+            Token::RightAngular
+        ];
+
+        let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
+        
+        let mut lexxer = Lexxer::new();
+        let result = lexxer.parse(input);
+        assert_eq!(result, expected_result);
+    }
+
+    #[test]
+    fn ignores_weird_stuff_2() {
+        let input = "> (SYMBOL) Hello World";
+
+        let expected_tokens = vec![
+            Token::RightAngular,
+            Token::Symbol("SYMBOL")
+        ];
+
+        let expected_result: Result<Vec<Token>, LexxerError> = Ok(expected_tokens);
         
         let mut lexxer = Lexxer::new();
         let result = lexxer.parse(input);
