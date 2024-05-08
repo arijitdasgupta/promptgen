@@ -1,21 +1,16 @@
 use crate::lexer::Token;
 
 #[derive(PartialEq, Eq, Debug)]
-struct Response<'a> {
-    text: &'a str,
-    label: Option<&'a str>,
+enum ChunkVariant {
+    Prompt,
+    Response,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-struct Prompt<'a> {
+struct Chunk<'a> {
+    variant: ChunkVariant,
     text: &'a str,
     label: Option<&'a str>,
-    possible_responses: Vec<Response<'a>>,
-}
-
-#[derive(PartialEq, Eq, Debug)]
-struct PromptTree<'a> {
-    prompts: Vec<Prompt<'a>>,
 }
 
 struct Parser {
@@ -27,10 +22,12 @@ pub(crate) enum ParsingError {
     InvalidSyntax,
 }
 
-type ParsedChunk<'a> = (usize, Option<&'a str>, &'a str);
+type ParsedTextAndLabel<'a> = (usize, Option<&'a str>, &'a str);
 
 /// Parsed prompt part, Label, Text or just Text
-fn parse_prompt_part_greedily<'a>(tokens: &[Token<'a>]) -> Result<ParsedChunk<'a>, ParsingError> {
+fn parse_label_and_text_greedily<'a>(
+    tokens: &[Token<'a>],
+) -> Result<ParsedTextAndLabel<'a>, ParsingError> {
     let first_token = tokens.get(0);
     let second_token = tokens.get(1);
 
@@ -51,22 +48,31 @@ impl Parser {
     fn parse_tokens<'a, 'b>(
         self: &'b mut Self,
         tokens: Vec<Token<'a>>,
-    ) -> Result<PromptTree<'a>, ParsingError> {
+    ) -> Result<Vec<Chunk<'a>>, ParsingError> {
+        let mut chunks: Vec<Chunk<'a>> = vec![];
+
         loop {
             match tokens.get(self.scan_position) {
                 Some(Token::RightAngular) => {
                     let (new_index, label, text) =
-                        parse_prompt_part_greedily(&tokens[(self.scan_position + 1)..])?;
+                        parse_label_and_text_greedily(&tokens[(self.scan_position + 1)..])?;
                     self.scan_position = new_index + 1;
-
-                    // TODO: Store as question
+                    chunks.push(Chunk {
+                        variant: ChunkVariant::Prompt,
+                        text,
+                        label,
+                    });
                 }
                 Some(Token::LeftAngular) => {
                     let (new_index, label, text) =
-                        parse_prompt_part_greedily(&tokens[(self.scan_position + 1)..])?;
+                        parse_label_and_text_greedily(&tokens[(self.scan_position + 1)..])?;
                     self.scan_position = new_index + 1;
 
-                    // TODO: Store as answer
+                    chunks.push(Chunk {
+                        variant: ChunkVariant::Response,
+                        text,
+                        label,
+                    })
                 }
                 Some(_) => {
                     return Err(ParsingError::InvalidSyntax);
@@ -75,25 +81,44 @@ impl Parser {
             }
         }
 
-        Ok(PromptTree { prompts: vec![] })
+        Ok(chunks)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{lexer::Token, parser::PromptTree};
+    use crate::{lexer::Token, parser::Chunk};
 
-    use super::{parse_prompt_part_greedily, Parser, ParsingError};
+    use super::{parse_label_and_text_greedily, ChunkVariant, Parser, ParsingError};
 
+    // Parse a series of tokens into chunks
     #[test]
-    fn parse_prompt() {
-        let input_tokens = vec![];
-        let expected_parse_result = PromptTree { prompts: vec![] };
+    fn parse_tokens_to_chunks() {
+        let input_tokens = vec![
+            Token::RightAngular,
+            Token::StringLiteral("Hello world"),
+            Token::LeftAngular,
+            Token::LabelLiteral("LABEL_1"),
+            Token::StringLiteral("Hello me"),
+        ];
 
         let mut parser = Parser::new();
-        let parse_result = parser.parse_tokens(input_tokens);
+        let parsing_results = parser.parse_tokens(input_tokens);
 
-        assert_eq!(parse_result, Ok(expected_parse_result));
+        let expect_chunks = vec![
+            Chunk {
+                variant: ChunkVariant::Prompt,
+                label: None,
+                text: "Hello world",
+            },
+            Chunk {
+                variant: ChunkVariant::Response,
+                label: Some("LABEL_1"),
+                text: "Hello me",
+            },
+        ];
+
+        assert_eq!(parsing_results, Ok(expect_chunks));
     }
 
     // Parse prompt tokens
@@ -105,7 +130,7 @@ mod test {
             Token::StringLiteral("Hello World"),
         ];
 
-        let parse_results = parse_prompt_part_greedily(&input_tokens[1..]);
+        let parse_results = parse_label_and_text_greedily(&input_tokens[1..]);
         let expected_parse_result = (1, Some("LABEL_1"), "Hello World");
 
         assert_eq!(parse_results, Ok(expected_parse_result));
@@ -116,7 +141,7 @@ mod test {
     fn parse_prompt_part_without_label() {
         let input_tokens = vec![Token::LeftAngular, Token::StringLiteral("Hello World")];
 
-        let parse_results = parse_prompt_part_greedily(&input_tokens[1..]);
+        let parse_results = parse_label_and_text_greedily(&input_tokens[1..]);
         let expected_parse_result = (0, None, "Hello World");
 
         assert_eq!(parse_results, Ok(expected_parse_result));
@@ -127,7 +152,7 @@ mod test {
     fn parse_bad_syntax() {
         let input_tokens = vec![Token::RightAngular];
 
-        let parse_results = parse_prompt_part_greedily(&input_tokens);
+        let parse_results = parse_label_and_text_greedily(&input_tokens);
         let expected_parse_result = Err(ParsingError::InvalidSyntax);
         assert_eq!(parse_results, expected_parse_result);
     }
