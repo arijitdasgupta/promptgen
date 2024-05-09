@@ -28,6 +28,7 @@ A low dependency parser for a simple promptgen DSL that allows questions answer 
 
 ## TODOs
  - [ ] Sample implementation with label usage.
+  - Maybe a static HTML site generator.
  - [ ] Docs & Rust crate publication.
  - [ ] CI/CD actions
  - [ ] Better error reporting for parsing.
