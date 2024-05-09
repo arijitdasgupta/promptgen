@@ -44,7 +44,7 @@ fn parse_label_block_greedily<'a>(data: &'a str) -> Result<StringyParseResult, L
 fn parse_string_literal_greedily<'a>(data: &'a str) -> Result<StringyParseResult, LexxerError> {
     let mut idx: usize = 1;
 
-    while true {
+    loop {
         let d = data.as_bytes().get(idx);
         match d {
             None => return Err(LexxerError::UnterminatedStringLiteral),

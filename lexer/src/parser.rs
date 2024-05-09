@@ -1,4 +1,4 @@
-use crate::chunker::{Chunk, ChunkVariant, Chunker, ChunkingError};
+use crate::chunker::{Chunk, ChunkVariant};
 
 pub(crate) enum ParserError {}
 
