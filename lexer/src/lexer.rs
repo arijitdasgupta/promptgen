@@ -61,20 +61,16 @@ fn parse_string_literal_greedily<'a>(data: &'a str) -> Result<StringyParseResult
     })
 }
 
-struct Lexer {
-    cursor_position: usize,
-}
-
-struct Lexxer {
+pub(crate) struct Lexxer {
     scan_position: usize,
 }
 
 impl Lexxer {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Lexxer { scan_position: 0 }
     }
 
-    fn parse<'a, 'b>(self: &'b mut Self, data: &'a str) -> Result<Vec<Token<'a>>, LexxerError> {
+    pub fn parse<'a, 'b>(self: &'b mut Self, data: &'a str) -> Result<Vec<Token<'a>>, LexxerError> {
         let mut result: Vec<Token<'a>> = vec![];
 
         while let Some(char) = data.as_bytes().get(self.scan_position) {
@@ -109,7 +105,7 @@ impl Lexxer {
 mod test {
     use crate::lexer::{Lexxer, LexxerError, StringyParseResult};
 
-    use super::{parse_string_literal_greedily, parse_label_block_greedily, Token};
+    use super::{parse_label_block_greedily, parse_string_literal_greedily, Token};
 
     // A whole prompt chunk, e.g.
     // > (LABEL) \"Hello World\"

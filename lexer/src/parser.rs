@@ -1,28 +1,27 @@
-use std::string::ParseError;
-
 use crate::chunker::{Chunk, ChunkVariant, Chunker, ChunkingError};
 
 pub(crate) enum ParserError {}
 
 #[derive(PartialEq, Eq, Debug)]
-pub(crate) struct Response<'a> {
-    text: &'a str,
-    label: Option<&'a str>,
+pub struct Response<'a> {
+    pub text: &'a str,
+    pub label: Option<&'a str>,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub(crate) struct Prompt<'a> {
-    text: &'a str,
-    label: Option<&'a str>,
-    responses: Vec<Response<'a>>,
+pub struct Prompt<'a> {
+    pub text: &'a str,
+    pub label: Option<&'a str>,
+    pub responses: Vec<Response<'a>>,
 }
 
-type ResponseParsingResult<'a> = (usize, Vec<Response<'a>>);
+// TODO: Really weird design here, clean it up
+type ResponseParsingResult<'a> = (Option<usize>, Vec<Response<'a>>);
 
-pub(crate) fn parse_response_chunks_greedily<'a>(
-    chunks: &[Chunk<'a>],
-) -> ResponseParsingResult<'a> {
-    let mut scan_position = 0;
+// Scans given slice greedily and returns the index after the scane of the slice
+// and a vector of possible responses.
+fn parse_response_chunks_greedily<'a>(chunks: &[Chunk<'a>]) -> ResponseParsingResult<'a> {
+    let mut scan_position: usize = 0;
 
     while let Some(Chunk {
         variant: ChunkVariant::Response,
@@ -40,7 +39,11 @@ pub(crate) fn parse_response_chunks_greedily<'a>(
         })
         .collect();
 
-    (scan_position - 1, response)
+    if scan_position == 0 {
+        return (None, response);
+    } else {
+        return (Some(scan_position - 1), response);
+    }
 }
 
 pub(crate) struct Parser {
@@ -52,8 +55,30 @@ impl Parser {
         Parser { scan_position: 0 }
     }
 
-    pub(crate) fn parse_chunks(&mut self, chunks: Vec<Chunk>) -> Result<Vec<Prompt>, ParseError> {
-        unimplemented!()
+    pub(crate) fn parse_chunks<'a>(&mut self, chunks: Vec<Chunk<'a>>) -> Vec<Prompt<'a>> {
+        let mut prompts = vec![];
+
+        while let Some(Chunk {
+            variant: ChunkVariant::Prompt,
+            text,
+            label,
+        }) = chunks.get(self.scan_position)
+        {
+            let (relative_scan_position, responses) =
+                parse_response_chunks_greedily(&chunks[self.scan_position + 1..]);
+            prompts.push(Prompt {
+                text,
+                label: *label,
+                responses,
+            });
+
+            match relative_scan_position {
+                Some(relative_scan_pos) => self.scan_position += relative_scan_pos + 2,
+                None => self.scan_position += 1,
+            }
+        }
+
+        prompts
     }
 }
 
@@ -61,10 +86,64 @@ impl Parser {
 mod test {
     use crate::{
         chunker::{Chunk, ChunkVariant},
-        parser::parse_response_chunks_greedily,
+        parser::{parse_response_chunks_greedily, Prompt},
     };
 
     use super::{Parser, Response};
+
+    // Parsing chunks fully
+    #[test]
+    fn parse_chunks_with_prompts_and_responses() {
+        let input = vec![
+            Chunk {
+                variant: ChunkVariant::Prompt,
+                text: "Are you human?",
+                label: Some("NONHUMAN"),
+            },
+            Chunk {
+                variant: ChunkVariant::Response,
+                text: "Yes",
+                label: Some("HUMAN"),
+            },
+            Chunk {
+                variant: ChunkVariant::Response,
+                text: "No",
+                label: Some("NONHUMAN"),
+            },
+            Chunk {
+                variant: ChunkVariant::Prompt,
+                text: "Nice to meet you",
+                label: Some("HUMAN"),
+            },
+        ];
+
+        let expected_result = vec![
+            Prompt {
+                text: "Are you human?",
+                label: Some("NONHUMAN"),
+                responses: vec![
+                    Response {
+                        text: "Yes",
+                        label: Some("HUMAN"),
+                    },
+                    Response {
+                        text: "No",
+                        label: Some("NONHUMAN"),
+                    },
+                ],
+            },
+            Prompt {
+                text: "Nice to meet you",
+                label: Some("HUMAN"),
+                responses: vec![],
+            },
+        ];
+
+        let mut parser = Parser::new();
+        let parse_results = parser.parse_chunks(input);
+
+        assert_eq!(parse_results, expected_result);
+    }
 
     // Parsing some chunks into responses, until the next prompt.
     #[test]
@@ -100,6 +179,22 @@ mod test {
             },
         ];
 
-        assert_eq!(result, (1, expected_result));
+        assert_eq!(result, (Some(1), expected_result));
+    }
+
+    #[test]
+    fn parse_no_respinse() {
+        let input = vec![Chunk {
+            variant: ChunkVariant::Prompt,
+            label: None,
+            text: "foobar",
+        }];
+
+        let results = parse_response_chunks_greedily(&input);
+
+        let expected_relative_index: Option<usize> = None;
+        let resultant_vec: Vec<Response> = vec![];
+
+        assert_eq!(results, (expected_relative_index, resultant_vec));
     }
 }
