@@ -27,7 +27,7 @@ A low dependency parser for a simple promptgen DSL that allows questions answer 
  - If a question doesn't have an answer associated with it, the system won't go any further.
 
 ## TODOs
- - [ ] Sample implementation with pointer usage.
+ - [ ] Sample implementation with label usage.
  - [ ] Docs & Rust crate publication.
  - [ ] CI/CD actions
  - [ ] Better error reporting for parsing.
