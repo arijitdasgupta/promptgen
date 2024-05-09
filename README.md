@@ -29,6 +29,7 @@ A low dependency parser for a simple promptgen DSL that allows questions answer 
 ## TODOs
  - [ ] Sample implementation with pointer usage.
  - [ ] Docs & Rust crate publication.
+ - [ ] CI/CD actions
  - [ ] Better error reporting for parsing.
  - [ ] Consider supporting proper multiline string support for formatted texts, such as Markdown.
  - [ ] Streaming support?
