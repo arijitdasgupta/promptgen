@@ -1,0 +1,4 @@
+> "Are you a human?"
+< "Yes, I am"
+> "Nice! Glad to meet you human!"
+< "Likewise"

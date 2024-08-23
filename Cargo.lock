@@ -7,5 +7,16 @@ name = "lexer"
 version = "0.1.0"
 
 [[package]]
+name = "prompter"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+]
+
+[[package]]
 name = "promptgen"
 version = "0.1.0"
+dependencies = [
+ "lexer",
+ "prompter",
+]

@@ -1,0 +1,6 @@
+> (START) "Are you a human?"
+< (YES) "Yes, I am"
+< (ANS_NO) "No"
+> (ANS_NO) "That's very weird! Care to try again?"
+< (START) "Please!"
+> (YES) "Nice! Glad to meet you human!"

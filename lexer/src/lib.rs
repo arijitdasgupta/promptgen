@@ -4,7 +4,7 @@ use parser::{ParserError, Prompt};
 
 mod chunker;
 mod lexer;
-mod parser;
+pub mod parser;
 
 #[derive(Debug)]
 pub enum PromptgenErr {

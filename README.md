@@ -20,18 +20,17 @@ A low dependency parser for a simple promptgen DSL that allows questions answer 
  - No escape character supported at the moment.
  - No blank line is legal syntax.
 
-### Possible usage of the structure
- - The prompter system starts with the first question as the starting question.
+### Prompting Behaviour 
+ - The prompter system starts with the first question as the starting question, or whichever question has the label `START`.
  - If an answer has a label, answering with that answer will go to the question with the corresponding label.
     - If the label doesn't exist as a question symbol, the system will go to the next available question.
- - If a question doesn't have an answer associated with it, the system won't go any further.
+ - Duplicate label behaviour is undefined.
 
 ## TODOs
  - [ ] Sample implementation with label usage.
-  - Maybe a static HTML site generator.
  - [ ] Docs & Rust crate publication.
  - [ ] CI/CD actions
  - [ ] Better error reporting for parsing.
  - [ ] Consider supporting proper multiline string support for formatted texts, such as Markdown.
- - [ ] Streaming support?
+ - [ ] Installation docs
 

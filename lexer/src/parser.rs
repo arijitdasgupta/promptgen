@@ -18,7 +18,7 @@ pub struct Prompt<'a> {
 // TODO: Really weird design here, clean it up
 type ResponseParsingResult<'a> = (Option<usize>, Vec<Response<'a>>);
 
-// Scans given slice greedily and returns the index after the scane of the slice
+// Scans given slice greedily and returns the index after the scan of the slice
 // and a vector of possible responses.
 fn parse_response_chunks_greedily<'a>(chunks: &[Chunk<'a>]) -> ResponseParsingResult<'a> {
     let mut scan_position: usize = 0;
