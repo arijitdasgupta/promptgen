@@ -110,6 +110,7 @@ mod tests {
         let data = read_to_string("./labelless_prompt.txt").unwrap();
         let prompts = parse(&data).unwrap();
         let seed_prompt = Prompter::new(&prompts).unwrap();
+        assert_eq!(seed_prompt.next.text, "Are you a human?");
 
         let next_prompt = seed_prompt.answer(&seed_prompt.next.responses[0]).unwrap();
         assert_eq!(next_prompt.next.label, None);
