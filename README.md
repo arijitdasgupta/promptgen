@@ -26,7 +26,8 @@ A low dependency parser for a simple promptgen DSL that allows questions answer 
     - If the label doesn't exist as a question symbol, the system will go to the next available question.
  - Duplicate label behaviour is undefined.
 
-## TODOs
+## TODOs:
+ - [ ] Simplify structure, remove internal crates.
  - [ ] Sample implementation with label usage.
  - [ ] Docs & Rust crate publication.
  - [ ] CI/CD actions
