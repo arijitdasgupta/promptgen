@@ -12,7 +12,7 @@ pub enum PrompterErr {
 #[derive(Clone, Copy)]
 pub struct Prompter<'a> {
     prompts: &'a Vec<Prompt<'a>>,
-    pub next: &'a Prompt<'a>,
+    next: &'a Prompt<'a>,
     next_idx: usize,
 }
 
