@@ -38,7 +38,7 @@ impl<'a> Prompter<'a> {
         self.next
     }
 
-    pub fn answer(&self, response: &Response) -> Result<Prompter, PrompterErr> {
+    pub fn answer(self, response: &Response) -> Result<Prompter<'a>, PrompterErr> {
         // When there is a label try to find the question with the given label
         // otherwise, move on to the next question
 
@@ -53,7 +53,7 @@ impl<'a> Prompter<'a> {
             let result = Self {
                 next: next_prompt,
                 next_idx,
-                ..*self
+                ..self
             };
 
             return Ok(result);
@@ -67,7 +67,7 @@ impl<'a> Prompter<'a> {
         let result = Self {
             next: next_prompt,
             next_idx: self.next_idx + 1,
-            ..*self
+            ..self
         };
 
         return Ok(result);
