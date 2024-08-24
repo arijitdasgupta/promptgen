@@ -34,6 +34,10 @@ impl<'a> Prompter<'a> {
         })
     }
 
+    pub fn next(&self) -> &'a Prompt<'a> {
+        self.next
+    }
+
     pub fn answer(&self, response: &Response) -> Result<Prompter, PrompterErr> {
         // When there is a label try to find the question with the given label
         // otherwise, move on to the next question
