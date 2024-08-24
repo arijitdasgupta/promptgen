@@ -9,6 +9,7 @@ pub enum PrompterErr {
     NoMoreQ,
 }
 
+#[derive(Clone, Copy)]
 pub struct Prompter<'a> {
     prompts: &'a Vec<Prompt<'a>>,
     pub next: &'a Prompt<'a>,
