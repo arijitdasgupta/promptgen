@@ -2,13 +2,13 @@ use crate::chunker::{Chunk, ChunkVariant};
 
 pub(crate) enum ParserError {}
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Response<'a> {
     pub text: &'a str,
     pub label: Option<&'a str>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Prompt<'a> {
     pub text: &'a str,
     pub label: Option<&'a str>,
